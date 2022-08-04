@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  go:
+    build: ./go
+    tty: true
+    ports: 
+      - 8080:8080
+    volumes:
+      - ./server/src:/workspace
+    working_dir: /workspace
+    env_file:
+      - ./.env
