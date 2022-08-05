@@ -19,9 +19,15 @@ func errorResponse(w http.ResponseWriter, errMsg error, statusCode int) {
 	w.WriteHeader(statusCode)
 }
 
+func sendMessage(api *slack.Client, event *slackevents.AppMentionEvent, w http.ResponseWriter, text string) {
+	if _, _, err := api.PostMessage(event.Channel, slack.MsgOptionText(text, false)); err != nil {
+		errorResponse(w, err, http.StatusInternalServerError)
+	}
+}
+
 func main() {
 	// クライアント
-	api := slack.New(os.Getenv("SLACK_BOT_TOKEN"))
+	var api *slack.Client = slack.New(os.Getenv("SLACK_BOT_TOKEN"))
 
 	http.HandleFunc("/slack/events", func(w http.ResponseWriter, r *http.Request) {
 		// リクエスト検証
@@ -74,16 +80,10 @@ func main() {
 
 				command := message[1]
 				switch command {
-				case "ping":
-					if _, _, err := api.PostMessage(event.Channel, slack.MsgOptionText("pong", false)); err != nil {
-						errorResponse(w, err, http.StatusInternalServerError)
-						return
-					}
-				case "そんなこと言っても":
-					if _, _, err := api.PostMessage(event.Channel, slack.MsgOptionText("しょうがないじゃないかぁ", false)); err != nil {
-						errorResponse(w, err, http.StatusInternalServerError)
-						return
-					}
+				case "test":
+					sendMessage(api, event, w, "ok!")
+				default:
+					sendMessage(api, event, w, "invalid message.")
 				}
 			}
 		}
