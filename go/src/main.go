@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"mymodule/attendance"
 	"net/http"
 	"os"
 	"strings"
@@ -94,6 +95,14 @@ func main() {
 				case "testUserAndTime":
 					res_text := "user: " + event.User + " time: " + currentTime()
 					sendMessage(api, event, w, res_text)
+				case "start":
+					current_time := currentTime()
+					attendance.InsertRecord(event.User, current_time)
+					sendMessage(api, event, w, "start time : "+current_time)
+				case "end":
+					current_time := currentTime()
+					attendance.UpdateRecord(event.User, current_time)
+					sendMessage(api, event, w, "end time : "+current_time)
 				default:
 					sendMessage(api, event, w, "invalid message.")
 				}
