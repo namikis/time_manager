@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 func errorResponse(w http.ResponseWriter, errMsg error, statusCode int) {
@@ -23,6 +24,14 @@ func sendMessage(api *slack.Client, event *slackevents.AppMentionEvent, w http.R
 	if _, _, err := api.PostMessage(event.Channel, slack.MsgOptionText(text, false)); err != nil {
 		errorResponse(w, err, http.StatusInternalServerError)
 	}
+}
+
+func currentTime() string {
+	tokyo, err := time.LoadLocation("Asia/Tokyo")
+	if err != nil {
+		return "cannot get TZ"
+	}
+	return time.Now().In(tokyo).Format("2006-01-02 15:04")
 }
 
 func main() {
@@ -82,6 +91,9 @@ func main() {
 				switch command {
 				case "test":
 					sendMessage(api, event, w, "ok!")
+				case "testUserAndTime":
+					res_text := "user: " + event.User + " time: " + currentTime()
+					sendMessage(api, event, w, res_text)
 				default:
 					sendMessage(api, event, w, "invalid message.")
 				}
