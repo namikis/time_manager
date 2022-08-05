@@ -12,6 +12,13 @@ import (
 	"strings"
 )
 
+func errorResponse(w http.ResponseWriter, errMsg error, statusCode int) {
+	if errMsg != nil {
+		log.Println(errMsg)
+	}
+	w.WriteHeader(statusCode)
+}
+
 func main() {
 	// クライアント
 	api := slack.New(os.Getenv("SLACK_BOT_TOKEN"))
@@ -20,29 +27,25 @@ func main() {
 		// リクエスト検証
 		verifier, err := slack.NewSecretsVerifier(r.Header, os.Getenv("SLACK_SIGNING_SECRET"))
 		if err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
+			errorResponse(w, err, http.StatusInternalServerError)
 			return
 		}
 
 		bodyReader := io.TeeReader(r.Body, &verifier)
 		body, err := ioutil.ReadAll(bodyReader)
 		if err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
+			errorResponse(w, err, http.StatusInternalServerError)
 			return
 		}
 
 		if err := verifier.Ensure(); err != nil {
-			log.Println()
-			w.WriteHeader(http.StatusBadRequest)
+			errorResponse(w, err, http.StatusBadRequest)
 			return
 		}
 
 		eventsAPIEvent, err := slackevents.ParseEvent(json.RawMessage(body), slackevents.OptionNoVerifyToken())
 		if err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
+			errorResponse(w, err, http.StatusInternalServerError)
 			return
 		}
 
@@ -50,14 +53,12 @@ func main() {
 		case slackevents.URLVerification:
 			var res *slackevents.ChallengeResponse
 			if err := json.Unmarshal(body, &res); err != nil {
-				log.Println(err)
-				w.WriteHeader(http.StatusInternalServerError)
+				errorResponse(w, err, http.StatusInternalServerError)
 				return
 			}
 			w.Header().Set("Content-Type", "text/plain")
 			if _, err := w.Write([]byte(res.Challenge)); err != nil {
-				log.Println(err)
-				w.WriteHeader(http.StatusInternalServerError)
+				errorResponse(w, err, http.StatusInternalServerError)
 				return
 			}
 		case slackevents.CallbackEvent:
@@ -67,6 +68,7 @@ func main() {
 				message := strings.Split(event.Text, " ")
 				if len(message) < 2 {
 					w.WriteHeader(http.StatusBadRequest)
+					errorResponse(w, nil, http.StatusBadRequest)
 					return
 				}
 
@@ -74,14 +76,12 @@ func main() {
 				switch command {
 				case "ping":
 					if _, _, err := api.PostMessage(event.Channel, slack.MsgOptionText("pong", false)); err != nil {
-						log.Println(err)
-						w.WriteHeader(http.StatusInternalServerError)
+						errorResponse(w, err, http.StatusInternalServerError)
 						return
 					}
 				case "そんなこと言っても":
 					if _, _, err := api.PostMessage(event.Channel, slack.MsgOptionText("しょうがないじゃないかぁ", false)); err != nil {
-						log.Println(err)
-						w.WriteHeader(http.StatusInternalServerError)
+						errorResponse(w, err, http.StatusInternalServerError)
 						return
 					}
 				}
