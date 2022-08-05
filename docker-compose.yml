@@ -10,3 +10,17 @@ services:
     working_dir: /workspace
     env_file:
       - ./.env
+  mysql:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - tm-db-storage:/var/lib/mysql
+    ports:
+      - ${DB_PORT}:3306
+    platform: linux/x86_64
+volumes:
+  tm-db-storage:
