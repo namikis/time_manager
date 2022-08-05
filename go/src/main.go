@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -12,13 +13,29 @@ import (
 )
 
 func main() {
+	// クライアント
 	api := slack.New(os.Getenv("SLACK_BOT_TOKEN"))
 
 	http.HandleFunc("/slack/events", func(w http.ResponseWriter, r *http.Request) {
-		body, err := ioutil.ReadAll(r.Body)
+		// リクエスト検証
+		verifier, err := slack.NewSecretsVerifier(r.Header, os.Getenv("SLACK_SIGNING_SECRET"))
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		bodyReader := io.TeeReader(r.Body, &verifier)
+		body, err := ioutil.ReadAll(bodyReader)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if err := verifier.Ensure(); err != nil {
+			log.Println()
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
