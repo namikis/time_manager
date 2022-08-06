@@ -101,8 +101,8 @@ func main() {
 					sendMessage(api, event, w, "start time : "+current_time)
 				case "end":
 					current_time := currentTime()
-					attendance.UpdateRecord(event.User, current_time)
-					sendMessage(api, event, w, "end time : "+current_time)
+					start_time, end_time, working_time := attendance.UpdateRecord(event.User, current_time)
+					sendMessage(api, event, w, "start time : "+start_time+"\nend time : "+end_time+"\nworking time: "+working_time)
 				default:
 					sendMessage(api, event, w, "invalid message.")
 				}
