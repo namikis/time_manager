@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"mymodule/attendance"
+	"mymodule/breaking"
 	"net/http"
 	"os"
 	"strings"
@@ -101,8 +102,33 @@ func main() {
 					sendMessage(api, event, w, "start time : "+current_time)
 				case "end":
 					current_time := currentTime()
-					start_time, end_time, working_time := attendance.UpdateRecord(event.User, current_time)
-					sendMessage(api, event, w, "start time : "+start_time+"\nend time : "+end_time+"\nworking time: "+working_time)
+					start_time, end_time, working_time, breaking_time := attendance.UpdateRecord(event.User, current_time)
+					sendMessage(api, event, w, "start time : "+start_time+"\nend time : "+end_time+"\ntotal working time: "+working_time+"\nbreaking time: "+breaking_time)
+				case "break":
+					if len(message) < 3 {
+						w.WriteHeader(http.StatusBadRequest)
+						errorResponse(w, nil, http.StatusBadRequest)
+						return
+					}
+					current_time := currentTime()
+					sub_command := message[2]
+					response_text := sub_command + " breaking."
+
+					var result int
+					if sub_command == "start" {
+						result = breaking.InsertBreak(current_time, event.User)
+					} else if sub_command == "end" {
+						result = breaking.UpdateBreak(current_time, event.User)
+					} else {
+						w.WriteHeader(http.StatusBadRequest)
+						errorResponse(w, nil, http.StatusBadRequest)
+						return
+					}
+
+					if result == 0 {
+						response_text = "no attendance record."
+					}
+					sendMessage(api, event, w, response_text)
 				default:
 					sendMessage(api, event, w, "invalid message.")
 				}
